@@ -3,6 +3,7 @@ import java.util.TreeMap;
 import java.util.Scanner;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 
 /**
@@ -15,34 +16,48 @@ public class ModelingDTMC {
 	TreeMap<String,Transition> transitions = new TreeMap<String,Transition>();
 	HashMap<Integer,Integer> tids = new HashMap<Integer,Integer>();
 	ArrayList<Integer> tidwreq = new ArrayList<Integer>();
-	boolean hasState;
+	//boolean hasState;
 	/**
 	 * 
 	 * @param fileName
 	 * @throws FileNotFoundException
 	 */
+	
+	
+	public static void main(String[] args) throws IOException{
+		
+		ModelingDTMC mdl = new ModelingDTMC();
+		
+		String fln = "/home/mustafa/Spring2016/Research/PCAPAnalysis/SigChannels/172.16.11.142._172.16.2.34._254.txt";
+		mdl.generateDTMC(fln);
+		System.out.println(mdl.states.size()+" " + mdl.transitions.size());
+	}
+	
 	public void generateDTMC(String fileName) throws FileNotFoundException{
 		FunctionCodes fs = new FunctionCodes();
 		Scanner sc = new Scanner(new File(fileName));
-		String event;
+		String event="";
 		State st = new State();
 		State prevSt = new State();
 		String transId = null;
-		String prevTransId = "";
+		
 		
 		while(sc.hasNext()){
 			event = sc.next(); 
+			
 			st = getState(event,fs); // extract state and add if it is new
 			
-			if(st.equals(null)||st==null){
+			if(st==null){
 				st = updateS(event); // update state
 			}
 			
-			if(prevSt.getId()==null||prevSt.getId().equals(null)){ // first packet in trace without any previous state
+			if(prevSt.getId()==null){ // first packet in trace without any previous state
+				prevSt = st; // updating the previous state
 				continue;
 			}
 			
-			transId = st.getId() + "_to_" + prevTransId;
+			transId = prevSt.getId() + "_to_" + st.getId();
+			System.out.println(transId);
 			
 			if(transitions.containsKey(transId)){
 				updateTransition(prevSt,st,transId); // update the existing transition
@@ -78,7 +93,7 @@ public class ModelingDTMC {
 			tids.put(tid,rn);
 		}else if(tids.containsKey(tid)&&rq==0){
 			rn = tids.get(tid); // retrieve reference number
-			tids.remove(tid);
+			//tids.remove(tid);
 		}else{
 			tidwreq.add(tid);
 		}
@@ -117,9 +132,15 @@ public class ModelingDTMC {
 		
 		double fsls = Double.parseDouble(flds[0]);
 		int rq = Integer.parseInt(flds[2]);
+		int tid = Integer.parseInt(flds[1]);
 		int fc = Integer.parseInt(flds[3]);
 		int rn = Integer.parseInt(flds[4]);
 		int bwc = Integer.parseInt(flds[5]);
+		
+		if(tids.containsKey(tid)&&rq==0){
+			rn = tids.get(tid); // retrieve reference number
+			tids.remove(tid);
+		}
 		
 		String id = fc+"_"+rn+"_"+bwc; // state ID = Function code_ReferNumber_B/W
 		
